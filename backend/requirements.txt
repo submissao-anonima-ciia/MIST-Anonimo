@@ -1,0 +1,24 @@
+# API Framework
+fastapi>=0.100.0
+uvicorn>=0.23.0
+python-multipart>=0.0.6
+
+# Data Processing
+pandas>=2.0.0
+numpy>=1.24.0
+pyarrow>=14.0.0
+
+# Machine Learning
+scikit-learn>=1.3.0
+scipy>=1.10.0
+
+# Imputação com TabPFN
+tabpfn>=2.0.0
+huggingface-hub>=0.16.0
+
+# Geração de Missing Data
+pygrinder>=0.6
+
+# Visualização
+matplotlib>=3.7.0
+seaborn>=0.12.0
