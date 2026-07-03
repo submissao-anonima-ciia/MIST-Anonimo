@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MIST-Saúde - Análise de Dados</title>
+  <style>
+    /* Reset e estilos globais */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #fdfdfd;
+      min-height: 100vh;
+      color: #333;
+    }
+
+    /* Scrollbar customizada */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #667eea; border-radius: 10px; }
+
+    .site-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+
+    /* Header */
+    header {
+      background: white;
+      border-radius: 15px;
+      padding: 20px 30px;
+      margin-bottom: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+    }
+
+    .logo { display: flex; align-items: center; gap: 15px; }
+    .logo img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 3px solid #667eea; }
+    .logo p { font-size: 1.5rem; font-weight: 600; color: #000; }
+
+    .botao-home {
+      background: #667eea;
+      color: white;
+      text-decoration: none;
+      padding: 10px 25px;
+      border-radius: 25px;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    .botao-home:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+
+    /* Layout Grids */
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 3fr;
+      gap: 25px;
+    }
+
+    #card1, #card2, #card6 { grid-column: 1 / -1; }
+    #card4 { grid-column: 1 / 2; }
+    #card5 { grid-column: 2 / 3; }
+
+    .card {
+      background: white;
+      border-radius: 15px;
+      padding: 25px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      height: fit-content;
+    }
+
+    .card h2 {
+      color: #667eea;
+      font-size: 1.4rem;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #f0f0f0;
+    }
+
+    /* Tabela de Dados Ausentes e Estatísticas */
+    .table-container {
+      overflow-x: auto;
+      max-height: 500px;
+      border-radius: 8px;
+      border: 1px solid #eee;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      background: white;
+    }
+
+    th {
+      background: #667eea;
+      color: white;
+      padding: 12px;
+      text-align: left;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    tr:hover td { background: #f8f9ff; }
+
+    /* Estilização dos NaNs */
+    .highlight-nan {
+      background-color: #fff5f5 !important;
+      color: #e53e3e;
+      font-weight: bold;
+      text-align: center;
+      border-left: 4px solid #feb2b2;
+    }
+
+    .nan-zero {
+      color: #cbd5e0;
+      text-align: center;
+    }
+
+    .nan-percentage {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: normal;
+      opacity: 0.8;
+    }
+
+    /* Formulários e Upload */
+    .upload-area {
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 40px;
+      text-align: center;
+      cursor: pointer;
+      background: #fbfdff;
+      transition: all 0.3s;
+    }
+    .upload-area:hover { border-color: #667eea; background: #f0f4ff; }
+
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 25px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s;
+    }
+    button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4); }
+    button:disabled { background: #ccc; cursor: not-allowed; }
+
+    .checkbox-group {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      padding: 15px;
+      background: #f8f9ff;
+      border-radius: 8px;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+
+    .placeholder { color: #999; font-style: italic; text-align: center; padding: 20px; }
+
+    .loading {
+      display: inline-block;
+      width: 18px;
+      height: 18px;
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      vertical-align: middle;
+      margin-left: 8px;
+    }
+
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #667eea;
+      color: white;
+      padding: 15px 25px;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      font-weight: 500;
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .toast.success { background: #48bb78; }
+    .toast.info { background: #667eea; }
+
+    /* Responsividade */
+    @media (max-width: 1024px) {
+      .container { grid-template-columns: 1fr; }
+      #card4, #card5 { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="site-content">
+    <header>
+      <div class="logo">
+        <p>MIST-Saúde</p>
+      </div>
+      <a href="index.html" class="botao-home">Home Page</a>
+    </header>
+
+    <div class="container">
+      <div class="card" id="card1">
+        <h2>📁 Selecione Arquivo</h2>
+        <div class="upload-area" id="uploadArea">
+          <input type="file" id="input_file" accept=".csv,.xlsx,.xls,.parquet" hidden>
+          <div class="upload-content">
+            <p>Clique ou arraste seu arquivo aqui (.csv, .xlsx, .parquet)</p>
+            <span id="fileName" style="font-weight:bold; color:#667eea;"></span>
+          </div>
+        </div>
+        <button id="btn_selecao_dados" style="display:block; margin: 20px auto 0;">Enviar Arquivo</button>
+      </div>
+
+      <div class="card" id="card2">
+        <h2>📊 Descrição do Banco e Dados Ausentes</h2>
+        <div id="info_geral" style="margin-bottom: 15px; font-weight: 500; color: #667eea;"></div>
+        <div id="container_tabela" class="table-container">
+          <p class="placeholder">Aguardando arquivo para gerar estatísticas...</p>
+        </div>
+      </div>
+
+      <div class="card" id="card4">
+        <h2>📐 Seleção para Quadrantes</h2>
+        <p style="margin-bottom: 10px; font-size: 0.9rem;">Escolha as features para análise visual:</p>
+        <div id="checkbox_quadrantes" class="checkbox-group">
+          <p class="placeholder">Carregue um arquivo primeiro.</p>
+        </div>
+        <button id="btn_selecao_quadrantes" style="margin-top: 15px; width: 100%;">Gerar Quadrantes</button>
+      </div>
+
+      <div class="card" id="card5">
+        <h2>📈 Informação dos Quadrantes</h2>
+        <div id="resultado_quadrantes">
+          <p class="placeholder">Os gráficos e tabelas de erro aparecerão aqui.</p>
+        </div>
+      </div>
+
+      <div class="card" id="card6">
+        <h2>🔄 Imputação de Dados</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px;">
+          <div>
+            <p>Features para <strong>Imputar</strong>:</p>
+            <div id="checkbox_imputar" class="checkbox-group"></div>
+          </div>
+          <div>
+            <p>Features para <strong>Ignorar</strong>:</p>
+            <div id="checkbox_ignorar" class="checkbox-group"></div>
+          </div>
+          <div>
+            <p>Método e Ação:</p>
+            <select id="meuSelect" style="width:100%; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #ddd;">
+              <option value="tabpfn">TABPFN</option>
+              <option value="média">Média</option>
+              <option value="mice">MICE</option>
+              <option value="knn">KNN</option>
+              <option value="missforest">MissForest</option>
+            </select>
+            <button id="btn_selecao_modelo" style="width:100%;">Aplicar Imputação e Baixar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Toast Notification Function
+    function showNotification(message, type = 'info', duration = 3000) {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.textContent = message;
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-out forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, duration);
+    }
+
+    const fileInput = document.getElementById("input_file");
+    const uploadArea = document.getElementById("uploadArea");
+    const fileNameDisplay = document.getElementById("fileName");
+    let uploadedFile = null;
+
+    // --- Lógica de Upload ---
+    uploadArea.onclick = () => fileInput.click();
+    fileInput.onchange = () => {
+      if (fileInput.files[0]) {
+        uploadedFile = fileInput.files[0];
+        fileNameDisplay.textContent = uploadedFile.name;
+      }
+    };
+
+    // --- Lógica Principal de Processamento ---
+    document.getElementById('btn_selecao_dados').addEventListener('click', async function() {
+      if (!uploadedFile) return alert("Por favor, selecione um arquivo.");
+      
+      const btn = this;
+      btn.disabled = true;
+      btn.innerHTML = 'Processando... <span class="loading"></span>';
+
+      const formData = new FormData();
+      formData.append('file', uploadedFile);
+
+      try {
+        // Busca estatísticas
+        const resDesc = await fetch('http://localhost:8000/describe', { method: 'POST', body: formData });
+        const dataDesc = await resDesc.json();
+
+        // Busca NaNs
+        const resNans = await fetch('http://localhost:8000/colunas_nans', { method: 'POST', body: formData });
+        const dataNans = await resNans.json();
+
+        renderizarTabelaMestra(dataDesc, dataNans);
+        popularCheckboxes(Object.keys(dataDesc.describe));
+
+      } catch (err) {
+        console.error(err);
+        alert("Erro ao conectar com o servidor.");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Enviar Arquivo';
+      }
+    });
+
+    function renderizarTabelaMestra(data, nans) {
+      const container = document.getElementById('container_tabela');
+      const infoGeral = document.getElementById('info_geral');
+      const features = Object.keys(data.describe);
+      const rows = data.shape.rows;
+      const cols = data.shape.cols;
+
+      infoGeral.textContent = `Dataset: ${rows} linhas e ${cols} colunas.`;
+
+      // Pega as chaves de estatísticas (mean, std, etc)
+      const statsKeys = Object.keys(data.describe[features[0]]);
+
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th style="background:#4a5568; text-align:center;">NaNs (Abs / %)</th>
+              ${statsKeys.map(k => `<th>${k}</th>`).join('')}
+            </tr>
+          </thead>
+          <tbody>
+      `;
+
+      features.forEach(feat => {
+        const count = nans[feat] || 0;
+        const percent = ((count / rows) * 100).toFixed(2);
+        const nanClass = count > 0 ? 'highlight-nan' : 'nan-zero';
+
+        html += `
+          <tr>
+            <td><strong>${feat}</strong></td>
+            <td class="${nanClass}">
+              ${count}
+              <span class="nan-percentage">(${percent}%)</span>
+            </td>
+            ${statsKeys.map(k => {
+              let val = data.describe[feat][k];
+              let display = typeof val === 'number' ? val.toLocaleString('pt-BR', {maximumFractionDigits:3}) : val;
+              return `<td>${display}</td>`;
+            }).join('')}
+          </tr>
+        `;
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    function popularCheckboxes(features) {
+      const ids = ['checkbox_quadrantes', 'checkbox_imputar', 'checkbox_ignorar'];
+      ids.forEach(id => {
+        const div = document.getElementById(id);
+        div.innerHTML = features.map(f => `
+          <div style="display:flex; align-items:center; gap:8px;">
+            <input type="checkbox" value="${f}" id="${id}_${f}">
+            <label for="${id}_${f}" style="font-size:0.85rem; cursor:pointer;">${f}</label>
+          </div>
+        `).join('');
+      });
+    }
+
+    // --- Quadrantes ---
+    document.getElementById('btn_selecao_quadrantes').addEventListener('click', async function() {
+      const selected = Array.from(document.querySelectorAll('#checkbox_quadrantes input:checked')).map(i => i.value);
+      if (selected.length === 0) return alert("Selecione ao menos uma feature.");
+      
+      showNotification('O TabPFN roda na CPU neste ambiente. Ele é usado na `Seleção de Quadrantes` e pode ser escolhido como o algoritmo que irá imputar os dados na seção `Imputação de Dados`', 'info', 15000);
+
+      const btn = this;
+      btn.disabled = true;
+      btn.innerHTML = 'Gerando... <span class="loading"></span>';
+
+      const formData = new FormData();
+      formData.append('file', uploadedFile);
+      const params = new URLSearchParams();
+      selected.forEach(s => params.append('lista_features', s));
+
+      try {
+        const res = await fetch(`http://localhost:8000/info_quadrantes?${params.toString()}`, { method: 'POST', body: formData });
+        const data = await res.json();
+        
+        let html = '';
+        data.forEach(item => {
+          html += `
+            <div style="margin-bottom:40px; border-bottom:1px solid #eee; padding-bottom:20px;">
+              <h3 style="color:#667eea; margin-bottom:10px;">Feature: ${item.feature}</h3>
+              <img src="data:image/png;base64,${item.imagem_base64}" style="max-width:100%; border-radius:8px; border:1px solid #ddd;">
+              <h4 style="margin:15px 0 10px;">Erro Médio por Quadrante:</h4>
+              <div class="table-container">
+                <table style="font-size:0.8rem;">
+                  <tr style="background:#f4f4f4;"><th>Método</th>${Object.keys(item.erro_medio[Object.keys(item.erro_medio)[0]]).map(q => `<th>${q}</th>`).join('')}</tr>
+                  ${Object.entries(item.erro_medio).map(([met, quads]) => `
+                    <tr><td><strong>${met}</strong></td>${Object.values(quads).map(v => `<td>${v ? v.toFixed(2) : '-'}</td>`).join('')}</tr>
+                  `).join('')}
+                </table>
+              </div>
+            </div>`;
+        });
+        document.getElementById('resultado_quadrantes').innerHTML = html;
+      } catch (err) {
+        alert("Erro ao gerar quadrantes.");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Gerar Quadrantes';
+      }
+    });
+
+    // --- Imputação ---
+    document.getElementById('btn_selecao_modelo').addEventListener('click', async function() {
+      const imputar = Array.from(document.querySelectorAll('#checkbox_imputar input:checked')).map(i => i.value);
+      const ignorar = Array.from(document.querySelectorAll('#checkbox_ignorar input:checked')).map(i => i.value);
+      const metodo = document.getElementById('meuSelect').value;
+
+      if (imputar.length === 0) return alert("Selecione features para imputar.");
+
+      const btn = this;
+      btn.disabled = true;
+      btn.innerHTML = 'Processando... <span class="loading"></span>';
+
+      const formData = new FormData();
+      formData.append('arquivo', uploadedFile);
+      formData.append('metodo', metodo);
+      formData.append('features_a_imputar', imputar.join(','));
+      if (ignorar.length > 0) formData.append('ignorar', ignorar.join(','));
+
+      try {
+        const res = await fetch('http://localhost:8000/imputar', { method: 'POST', body: formData });
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${uploadedFile.name.replace(/\.[^.]+$/, '')}_imputado_${metodo}.csv`;
+        a.click();
+      } catch (err) {
+        alert("Erro na imputação.");
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Aplicar Imputação e Baixar';
+      }
+    });
+  </script>
+</body>
+</html>
